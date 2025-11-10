@@ -21,7 +21,6 @@ type Options struct {
 }
 
 func ParseOptions(path string) (Options, string, error) {
-	// Pisahkan jadi dua bagian: OPTIONS dan IMAGE_URL
 	parts := strings.SplitN(path, "/", 2)
 	if len(parts) < 2 {
 		return Options{}, "", errors.New("invalid URL format, must be /OPTIONS/ENCODED_URL")
@@ -30,13 +29,10 @@ func ParseOptions(path string) (Options, string, error) {
 	optStr := parts[0]
 	imageURL := parts[1]
 
-	// Decode jika URL di-encode (%2F -> /)
-	decoded, err := url.PathUnescape(imageURL)
-	if err == nil {
+	if decoded, err := url.PathUnescape(imageURL); err == nil {
 		imageURL = decoded
 	}
 
-	// Tambahkan https:// jika belum ada
 	if !strings.HasPrefix(imageURL, "http://") && !strings.HasPrefix(imageURL, "https://") {
 		imageURL = "https://" + imageURL
 	}
@@ -46,32 +42,20 @@ func ParseOptions(path string) (Options, string, error) {
 		Filters: make(map[string]float64),
 	}
 
-	// ===============================
-	// 📏 1. Resize / Width / Height
-	// ===============================
 	sizeRe := regexp.MustCompile(`(-?\d+)x(-?\d+)`)
 	if matches := sizeRe.FindStringSubmatch(optStr); len(matches) == 3 {
 		opts.Width, _ = strconv.Atoi(matches[1])
 		opts.Height, _ = strconv.Atoi(matches[2])
-
-		// Fit width only (e.g. /400x0/)
-		// Fit height only (e.g. /0x400/)
 		if opts.Width < 0 {
 			opts.Flip = true
 			opts.Width = -opts.Width
 		}
 	}
 
-	// ===============================
-	// 🤖 2. Smart Crop
-	// ===============================
 	if strings.Contains(optStr, "smart") {
 		opts.SmartCrop = true
 	}
 
-	// ===============================
-	// 🔄 3. Crop manual (x1,y1:x2,y2)
-	// ===============================
 	cropRe := regexp.MustCompile(`(\d+):(\d+):(\d+):(\d+)`)
 	if matches := cropRe.FindStringSubmatch(optStr); len(matches) == 5 {
 		for i := 1; i <= 4; i++ {
@@ -79,9 +63,6 @@ func ParseOptions(path string) (Options, string, error) {
 		}
 	}
 
-	// ===============================
-	// 🎨 4. Filters (grayscale, blur, dsb)
-	// ===============================
 	if strings.Contains(optStr, "filters:") {
 		filterStr := strings.Split(optStr, "filters:")[1]
 		filterParts := strings.Split(filterStr, ":")
@@ -97,14 +78,12 @@ func ParseOptions(path string) (Options, string, error) {
 			}
 			opts.Filters[name] = value
 
-			// Format & Watermark khusus
-			if name == "format" {
-				opts.Format = valStr[1]
-			}
-			if name == "watermark" {
+			switch name {
+			case "format":
+				opts.Format = strings.ToLower(valStr[1])
+			case "watermark":
 				opts.Watermark = valStr[1]
-			}
-			if name == "quality" {
+			case "quality":
 				opts.Quality = int(value)
 			}
 		}
