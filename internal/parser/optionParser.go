@@ -26,13 +26,11 @@ func ParseOptions(path string) (Options, string, error) {
 		return Options{}, "", errors.New("empty path")
 	}
 
-	// Ambil watermark dulu, agar tidak mengganggu imageURL
 	wmRe := regexp.MustCompile(`watermark\("([^"]+)"\)`)
 	wmMatch := wmRe.FindStringSubmatch(path)
 	var wmURL string
 	if len(wmMatch) == 2 {
 		wmURL = wmMatch[1]
-		// hapus filter watermark dari path
 		path = strings.Replace(path, wmMatch[0], "", 1)
 	}
 
@@ -58,7 +56,6 @@ func ParseOptions(path string) (Options, string, error) {
 		Filters: make(map[string]float64),
 	}
 
-	// parsing ukuran
 	sizeRe := regexp.MustCompile(`(-?\d+)x(-?\d+)`)
 	if matches := sizeRe.FindStringSubmatch(optStr); len(matches) == 3 {
 		opts.Width, _ = strconv.Atoi(matches[1])
@@ -106,7 +103,6 @@ func ParseOptions(path string) (Options, string, error) {
 			opts.Filters[name] = value
 		}
 
-		// parsing crop
 		if name == "crop" {
 			coords := strings.Split(param, ",")
 			if len(coords) == 4 {
